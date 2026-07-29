@@ -17,8 +17,10 @@ import {
   CircularProgress,
 } from '@mui/material';
 import { Visibility, VisibilityOff, Security, Lock } from '@mui/icons-material';
+import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
+  const router = useRouter();
   const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -84,7 +86,7 @@ export default function LoginPage() {
         localStorage.setItem('user', JSON.stringify(data.user));
 
         setTimeout(() => {
-          alert(`Welcome to Mailly, ${data.user.name || data.user.email}! (Dashboard redirect)`);
+          router.push('/dashboard');
         }, 1000);
       } catch (err: any) {
         setError(err.message || 'An error occurred during account creation.');
@@ -118,7 +120,7 @@ export default function LoginPage() {
         localStorage.setItem('user', JSON.stringify(data.user));
 
         setTimeout(() => {
-          alert(`Welcome back, ${data.user.name || data.user.email}! (Dashboard redirect)`);
+          router.push('/dashboard');
         }, 1000);
       } catch (err: any) {
         setError(err.message || 'An error occurred. Please try again.');
