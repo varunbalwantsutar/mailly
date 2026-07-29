@@ -77,7 +77,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
         </Typography>
 
         {onClose && (
-          <IconButton onClick={onClose} sx={{ display: { md: 'none' }, ml: 'auto' }}>
+          <IconButton onClick={onClose} sx={{ ml: 'auto' }}>
             <Close sx={{ fontSize: '20px' }} />
           </IconButton>
         )}

@@ -12,16 +12,17 @@ import { Search, Notifications, Person, Menu } from '@mui/icons-material';
 
 interface HeaderProps {
   onMenuClick: () => void;
+  desktopOpen: boolean;
 }
 
-export default function Header({ onMenuClick }: HeaderProps) {
+export default function Header({ onMenuClick, desktopOpen }: HeaderProps) {
   return (
     <Box
       component="header"
       sx={{
         position: 'fixed',
         top: 0,
-        left: { xs: 0, md: 288 },
+        left: { xs: 0, md: desktopOpen ? 288 : 0 },
         right: 0,
         height: 64,
         bgcolor: 'rgba(248, 249, 255, 0.8)',
@@ -32,13 +33,14 @@ export default function Header({ onMenuClick }: HeaderProps) {
         justifyContent: 'between',
         px: { xs: 2, md: 4 },
         zIndex: 40,
+        transition: 'left 0.2s',
       }}
     >
-      {/* Hamburger Menu on Mobile */}
+      {/* Hamburger Menu on Mobile & Collapsed Desktop */}
       <IconButton
         color="inherit"
         onClick={onMenuClick}
-        sx={{ mr: 1, display: { md: 'none' } }}
+        sx={{ mr: 1, display: { xs: 'inline-flex', md: desktopOpen ? 'none' : 'inline-flex' } }}
       >
         <Menu sx={{ color: '#464555' }} />
       </IconButton>
