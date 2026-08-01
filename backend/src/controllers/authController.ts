@@ -17,20 +17,6 @@ export const login = async (req: Request, res: Response) => {
     // Find user
     let user = await prisma.user.findUnique({ where: { email } });
 
-    // For ease of demo/testing, if the user doesn't exist, we will seed a default user on-the-fly
-    // if the email is 'test@company.com' or 'admin@mailly.com'.
-    if (!user && (email === 'test@company.com' || email === 'admin@mailly.com')) {
-      const hashedPassword = await bcrypt.hash('password123', 10);
-      user = await prisma.user.create({
-        data: {
-          email,
-          password: hashedPassword,
-          name: email === 'test@company.com' ? 'Test User' : 'Admin User',
-        },
-      });
-      console.log(`Auto-seeded user: ${email} with password123`);
-    }
-
     if (!user) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
@@ -47,14 +33,6 @@ export const login = async (req: Request, res: Response) => {
       JWT_SECRET,
       { expiresIn: '7d' }
     );
-
-    // Set cookie
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
 
     return res.status(200).json({
       message: 'Login successful',
@@ -103,14 +81,6 @@ export const register = async (req: Request, res: Response) => {
       JWT_SECRET,
       { expiresIn: '7d' }
     );
-
-    // Set cookie
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
 
     return res.status(201).json({
       message: 'User registered successfully',
