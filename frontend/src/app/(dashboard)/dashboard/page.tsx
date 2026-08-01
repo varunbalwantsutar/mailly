@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '../../../utils/api';
 import {
@@ -44,6 +44,31 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(false);
   const [chartType, setChartType] = useState<'bar' | 'line'>('bar');
   const [user, setUser] = useState<any>(null);
+
+  const chartData = useMemo(() => {
+    const sentCampaigns = recentCampaigns.filter(c => c.status === 'Sent');
+    const chartCampaigns = sentCampaigns.length > 0
+      ? [...sentCampaigns].reverse()
+      : [
+          { campaignName: 'Welcome Email', recipients: 120, deliveredCount: 118, openedCount: 84 },
+          { campaignName: 'Jan Newsletter', recipients: 150, deliveredCount: 147, openedCount: 95 },
+          { campaignName: 'Product Promo', recipients: 200, deliveredCount: 195, openedCount: 110 },
+          { campaignName: 'User Feedback', recipients: 180, deliveredCount: 178, openedCount: 130 },
+        ];
+
+    const displayCampaigns = chartCampaigns.length === 1
+      ? [
+          { campaignName: 'Launch', recipients: 0, deliveredCount: 0, openedCount: 0 },
+          ...chartCampaigns
+        ]
+      : chartCampaigns;
+
+    return {
+      labels: displayCampaigns.map((c) => c.campaignName),
+      delivered: displayCampaigns.map((c) => c.deliveredCount ?? c.recipients ?? 0),
+      opened: displayCampaigns.map((c) => c.openedCount ?? 0),
+    };
+  }, [recentCampaigns]);
 
   const fetchDashboardStats = async () => {
     try {
@@ -351,55 +376,27 @@ export default function DashboardPage() {
           </Box>
 
           <Box sx={{ height: 320, width: '100%' }}>
-            {(() => {
-              const sentCampaigns = recentCampaigns.filter(c => c.status === 'Sent');
-              const chartCampaigns = sentCampaigns.length > 0
-                ? [...sentCampaigns].reverse()
-                : [
-                  { campaignName: 'Welcome Email', recipients: 120, deliveredCount: 118, openedCount: 84 },
-                  { campaignName: 'Jan Newsletter', recipients: 150, deliveredCount: 147, openedCount: 95 },
-                  { campaignName: 'Product Promo', recipients: 200, deliveredCount: 195, openedCount: 110 },
-                  { campaignName: 'User Feedback', recipients: 180, deliveredCount: 178, openedCount: 130 },
-                ];
-
-              // Prepend baseline "Launch" point if there is only 1 campaign to draw a line connection
-              const displayCampaigns = chartCampaigns.length === 1
-                ? [
-                    { campaignName: 'Launch', recipients: 0, deliveredCount: 0, openedCount: 0 },
-                    ...chartCampaigns
-                  ]
-                : chartCampaigns;
-
-              const chartLabels = displayCampaigns.map((c) => c.campaignName);
-              const deliveredSeries = displayCampaigns.map((c) => c.deliveredCount ?? c.recipients ?? 0);
-              const openedSeries = displayCampaigns.map((c) => c.openedCount ?? 0);
-
-              if (chartType === 'bar') {
-                return (
-                  <BarChart
-                    xAxis={[{ scaleType: 'band', data: chartLabels }]}
-                    series={[
-                      { data: deliveredSeries, label: 'Delivered', color: '#2e7d32' },
-                      { data: openedSeries, label: 'Opened', color: '#3525cd' },
-                    ]}
-                    height={300}
-                    margin={{ top: 20, bottom: 40, left: 40, right: 10 }}
-                  />
-                );
-              } else {
-                return (
-                  <LineChart
-                    xAxis={[{ scaleType: 'point', data: chartLabels }]}
-                    series={[
-                      { data: deliveredSeries, label: 'Delivered', color: '#2e7d32', showMark: true },
-                      { data: openedSeries, label: 'Opened', color: '#3525cd', showMark: true },
-                    ]}
-                    height={300}
-                    margin={{ top: 20, bottom: 40, left: 40, right: 10 }}
-                  />
-                );
-              }
-            })()}
+            {chartType === 'bar' ? (
+              <BarChart
+                xAxis={[{ scaleType: 'band', data: chartData.labels }]}
+                series={[
+                  { data: chartData.delivered, label: 'Delivered', color: '#2e7d32' },
+                  { data: chartData.opened, label: 'Opened', color: '#3525cd' },
+                ]}
+                height={300}
+                margin={{ top: 20, bottom: 40, left: 40, right: 10 }}
+              />
+            ) : (
+              <LineChart
+                xAxis={[{ scaleType: 'point', data: chartData.labels }]}
+                series={[
+                  { data: chartData.delivered, label: 'Delivered', color: '#2e7d32', showMark: true },
+                  { data: chartData.opened, label: 'Opened', color: '#3525cd', showMark: true },
+                ]}
+                height={300}
+                margin={{ top: 20, bottom: 40, left: 40, right: 10 }}
+              />
+            )}
           </Box>
         </Paper>
 

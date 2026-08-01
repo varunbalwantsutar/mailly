@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '../../../../utils/api';
 import {
@@ -155,12 +155,21 @@ export default function CreateAudiencePage() {
     }
   };
 
-  const matchedContacts = contacts.filter(c => matchContactWithRules(c, rules, logicalOperator));
-  const estimatedReach = matchedContacts.length;
+  const rulesMatchingMetrics = useMemo(() => {
+    const matched = contacts.filter(c => matchContactWithRules(c, rules, logicalOperator));
+    const estimatedReach = matched.length;
+    const percentOfTotal = contacts.length > 0 ? Math.round((estimatedReach / contacts.length) * 100) : 0;
+    const activeCount = matched.filter(c => c.status === 'ACTIVE').length;
+    const uniqueTagsCount = Array.from(new Set(matched.flatMap(c => c.tags || []))).length;
 
-  const percentOfTotal = contacts.length > 0 ? Math.round((estimatedReach / contacts.length) * 100) : 0;
-  const activeCount = matchedContacts.filter(c => c.status === 'ACTIVE').length;
-  const uniqueTagsCount = Array.from(new Set(matchedContacts.flatMap(c => c.tags || []))).length;
+    return {
+      matchedContacts: matched,
+      estimatedReach,
+      percentOfTotal,
+      activeCount,
+      uniqueTagsCount,
+    };
+  }, [contacts, rules, logicalOperator]);
 
   const handleAddRule = () => {
     const newId = rules.length > 0 ? (Math.max(...rules.map((r) => parseInt(r.id))) + 1).toString() : '1';
@@ -458,7 +467,7 @@ export default function CreateAudiencePage() {
                     </Typography>
                     <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.5, mt: 1 }}>
                       <Typography variant="h3" sx={{ fontWeight: 800, fontSize: '32px', letterSpacing: '-0.02em' }}>
-                        {estimatedReach.toLocaleString()}
+                        {rulesMatchingMetrics.estimatedReach.toLocaleString()}
                       </Typography>
                       <Typography sx={{ fontSize: '13px', opacity: 0.9 }}>Contacts</Typography>
                     </Box>
@@ -473,15 +482,15 @@ export default function CreateAudiencePage() {
                 <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 1, textAlign: 'center' }}>
                   <Box>
                     <Typography sx={{ fontSize: '10px', opacity: 0.7 }}>% of Database</Typography>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{percentOfTotal}%</Typography>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{rulesMatchingMetrics.percentOfTotal}%</Typography>
                   </Box>
                   <Box>
                     <Typography sx={{ fontSize: '10px', opacity: 0.7 }}>Active Contacts</Typography>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{activeCount}</Typography>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{rulesMatchingMetrics.activeCount}</Typography>
                   </Box>
                   <Box>
                     <Typography sx={{ fontSize: '10px', opacity: 0.7 }}>Unique Tags</Typography>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{uniqueTagsCount}</Typography>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{rulesMatchingMetrics.uniqueTagsCount}</Typography>
                   </Box>
                 </Box>
               </Box>
@@ -499,7 +508,7 @@ export default function CreateAudiencePage() {
 
                 {/* Live sample contact list with opacity fading during updates */}
                 <Box sx={{ display: 'flex', flexDirection: 'column', opacity: isRefreshing ? 0.6 : 1, transition: 'opacity 0.2s ease-in-out' }}>
-                  {matchedContacts.slice(0, 5).map((c) => {
+                  {rulesMatchingMetrics.matchedContacts.slice(0, 5).map((c) => {
                     const initials = c.name
                       ? c.name
                         .split(' ')
@@ -567,7 +576,7 @@ export default function CreateAudiencePage() {
                       </Box>
                     );
                   })}
-                  {matchedContacts.length === 0 && (
+                  {rulesMatchingMetrics.matchedContacts.length === 0 && (
                     <Box sx={{ p: 4, textAlign: 'center' }}>
                       <Typography sx={{ fontSize: '12px', color: '#777587', fontStyle: 'italic' }}>
                         No matching contacts found.

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '../../../utils/api';
 import {
@@ -152,11 +152,20 @@ export default function CampaignsPage() {
     }
   };
 
-  // Dynamic metrics
-  const totalCampaignsCount = campaigns.length;
-  const scheduledCount = campaigns.filter(c => c.status === 'Scheduled').length;
-  const sentCount = campaigns.filter(c => c.status === 'Sent').length;
-  const draftsCount = campaigns.filter(c => c.status === 'Draft').length;
+  // Dynamic metrics memoized
+  const metrics = useMemo(() => {
+    const totalCampaignsCount = campaigns.length;
+    const scheduledCount = campaigns.filter(c => c.status === 'Scheduled').length;
+    const sentCount = campaigns.filter(c => c.status === 'Sent').length;
+    const draftsCount = campaigns.filter(c => c.status === 'Draft').length;
+
+    return {
+      totalCampaignsCount,
+      scheduledCount,
+      sentCount,
+      draftsCount,
+    };
+  }, [campaigns]);
 
   useEffect(() => {
     fetchCampaigns();
@@ -208,12 +217,15 @@ export default function CampaignsPage() {
   };
 
   // Filter logic
-  const filteredCampaigns = campaigns.filter((c) => {
-    const matchesSearch = c.name.toLowerCase().includes(searchQuery.toLowerCase()) || c.camId.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'Status' || c.status === statusFilter;
-    const matchesAudience = audienceFilter === 'Audience' || c.audience === audienceFilter;
-    return matchesSearch && matchesStatus && matchesAudience;
-  });
+  // Filter logic memoized
+  const filteredCampaigns = useMemo(() => {
+    return campaigns.filter((c) => {
+      const matchesSearch = c.name.toLowerCase().includes(searchQuery.toLowerCase()) || c.camId.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesStatus = statusFilter === 'Status' || c.status === statusFilter;
+      const matchesAudience = audienceFilter === 'Audience' || c.audience === audienceFilter;
+      return matchesSearch && matchesStatus && matchesAudience;
+    });
+  }, [campaigns, searchQuery, statusFilter, audienceFilter]);
 
   const columns: GridColDef[] = [
     {
@@ -425,27 +437,27 @@ export default function CampaignsPage() {
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: '1fr 1fr 1fr 1fr' }, gap: 3, mb: 4 }}>
         <KpiCard
           title="Total Campaigns"
-          value={totalCampaignsCount.toLocaleString()}
+          value={metrics.totalCampaignsCount.toLocaleString()}
           trend="+5%"
           icon={<Analytics />}
           color="#3525cd"
         />
         <KpiCard
           title="Scheduled"
-          value={scheduledCount.toLocaleString()}
+          value={metrics.scheduledCount.toLocaleString()}
           icon={<Event />}
           color="#5c5f61"
         />
         <KpiCard
           title="Sent Campaigns"
-          value={sentCount.toLocaleString()}
+          value={metrics.sentCount.toLocaleString()}
           trend="+12%"
           icon={<CheckCircle />}
           color="#3525cd"
         />
         <KpiCard
           title="Drafts"
-          value={draftsCount.toLocaleString()}
+          value={metrics.draftsCount.toLocaleString()}
           icon={<EditNote />}
           color="#5c5f61"
         />

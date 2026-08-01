@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '../../../utils/api';
 import {
@@ -145,23 +145,32 @@ export default function AudiencesPage() {
     }
   };
 
-  // Dynamic metrics
-  const activeAudiencesCount = audiences.length;
-  const totalContactsCount = contacts.length;
+  // Dynamic metrics memoized
+  const metrics = useMemo(() => {
+    const activeAudiencesCount = audiences.length;
+    const totalContactsCount = contacts.length;
 
-  const largestAudience = audiences.length > 0
-    ? audiences.reduce((max, aud) => (aud.count > max.count ? aud : max), audiences[0])
-    : null;
-  const largestAudienceLabel = largestAudience
-    ? `${largestAudience.name} (${largestAudience.count.toLocaleString()})`
-    : 'None';
+    const largestAudience = audiences.length > 0
+      ? audiences.reduce((max, aud) => (aud.count > max.count ? aud : max), audiences[0])
+      : null;
+    const largestAudienceLabel = largestAudience
+      ? `${largestAudience.name} (${largestAudience.count.toLocaleString()})`
+      : 'None';
 
-  const recentlyCreatedAudience = audiences.length > 0
-    ? [...audiences].sort((a, b) => new Date(b.createdAt || b.created || 0).getTime() - new Date(a.createdAt || a.created || 0).getTime())[0]
-    : null;
-  const recentlyCreatedLabel = recentlyCreatedAudience
-    ? `${recentlyCreatedAudience.name} (${recentlyCreatedAudience.count.toLocaleString()})`
-    : 'None';
+    const recentlyCreatedAudience = audiences.length > 0
+      ? [...audiences].sort((a, b) => new Date(b.createdAt || b.created || 0).getTime() - new Date(a.createdAt || a.created || 0).getTime())[0]
+      : null;
+    const recentlyCreatedLabel = recentlyCreatedAudience
+      ? `${recentlyCreatedAudience.name} (${recentlyCreatedAudience.count.toLocaleString()})`
+      : 'None';
+
+    return {
+      activeAudiencesCount,
+      totalContactsCount,
+      largestAudienceLabel,
+      recentlyCreatedLabel,
+    };
+  }, [audiences, contacts]);
 
   useEffect(() => {
     fetchAudiences();
@@ -236,28 +245,29 @@ export default function AudiencesPage() {
     }
   };
 
-  // Filter and search logic
-  const filteredAudiences = audiences.filter((a) => {
-    const matchesSearch = a.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesTab =
-      selectedTypeTab === 'All' ||
-      (selectedTypeTab === 'Static' && a.type === 'Static List') ||
-      (selectedTypeTab === 'Dynamic' && a.type === 'Dynamic Segment');
+  // Filter, search and sort logic memoized
+  const sortedAudiences = useMemo(() => {
+    const filtered = audiences.filter((a) => {
+      const matchesSearch = a.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesTab =
+        selectedTypeTab === 'All' ||
+        (selectedTypeTab === 'Static' && a.type === 'Static List') ||
+        (selectedTypeTab === 'Dynamic' && a.type === 'Dynamic Segment');
 
-    return matchesSearch && matchesTab;
-  });
+      return matchesSearch && matchesTab;
+    });
 
-  // Sort logic
-  const sortedAudiences = [...filteredAudiences].sort((a, b) => {
-    if (sortOption === 'Size (High to Low)') {
-      return b.count - a.count;
-    }
-    if (sortOption === 'Alphabetical') {
-      return a.name.localeCompare(b.name);
-    }
-    // Default: Last Updated / Created chronological order
-    return new Date(b.created).getTime() - new Date(a.created).getTime();
-  });
+    return [...filtered].sort((a, b) => {
+      if (sortOption === 'Size (High to Low)') {
+        return b.count - a.count;
+      }
+      if (sortOption === 'Alphabetical') {
+        return a.name.localeCompare(b.name);
+      }
+      // Default: Last Updated / Created chronological order
+      return new Date(b.created).getTime() - new Date(a.created).getTime();
+    });
+  }, [audiences, searchQuery, selectedTypeTab, sortOption]);
 
   // DataGrid Columns definition
   const columns: GridColDef[] = [
@@ -416,10 +426,10 @@ export default function AudiencesPage() {
       {/* KPI Cards: Overlapping header */}
       <Box sx={{ px: 4, mt: -5, position: 'relative', zIndex: 2 }}>
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: '1fr 1fr 1fr 1fr' }, gap: 3 }}>
-          <KpiCard title="Active Audiences" value={activeAudiencesCount.toLocaleString()} icon={<ElectricBolt />} color="#3525cd" />
-          <KpiCard title="Total Managed Contacts" value={totalContactsCount.toLocaleString()} trend="+12%" icon={<Groups />} color="#3525cd" />
-          <KpiCard title="Largest Segment" value={largestAudienceLabel} trend="Largest" icon={<Star />} color="#5c5f61" />
-          <KpiCard title="Recently Created Segment" value={recentlyCreatedLabel} trend="Recent" icon={<History />} color="#5c5f61" />
+          <KpiCard title="Active Audiences" value={metrics.activeAudiencesCount.toLocaleString()} icon={<ElectricBolt />} color="#3525cd" />
+          <KpiCard title="Total Managed Contacts" value={metrics.totalContactsCount.toLocaleString()} trend="+12%" icon={<Groups />} color="#3525cd" />
+          <KpiCard title="Largest Segment" value={metrics.largestAudienceLabel} trend="Largest" icon={<Star />} color="#5c5f61" />
+          <KpiCard title="Recently Created Segment" value={metrics.recentlyCreatedLabel} trend="Recent" icon={<History />} color="#5c5f61" />
         </Box>
       </Box>
 
