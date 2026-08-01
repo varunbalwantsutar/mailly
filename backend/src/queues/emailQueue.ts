@@ -109,16 +109,22 @@ export async function processCampaignSending(campaignId: string) {
     for (const email of recipientEmails) {
       try {
         // Embed tracking pixel
-        const pixelUrl = `http://localhost:5000/api/campaigns/tracker/open?campaignId=${campaign.id}&email=${encodeURIComponent(email)}`;
+        const backendUrl = process.env.BACKEND_URL || 'http://localhost:5001';
+        const pixelUrl = `${backendUrl}/api/campaigns/tracker/open?campaignId=${campaign.id}&email=${encodeURIComponent(email)}`;
         const trackingPixel = `<img src="${pixelUrl}" width="1" height="1" style="display:none;" />`;
         const htmlBody = `${campaign.body}\n\n${trackingPixel}`;
 
-        // Send email
+        // Send email with tracking headers for Brevo, Mailgun, and MailerSend
         const info = await transporter.sendMail({
           from: `"${campaign.fromName}" <${campaign.fromEmail}>`,
           to: email,
           subject: campaign.subject,
           html: htmlBody,
+          headers: {
+            'X-Mailin-tag': campaign.id,
+            'X-Mailgun-Variables': JSON.stringify({ campaignId: campaign.id }),
+            'X-MailerSend-Tags': campaign.id,
+          },
         });
 
         console.log(`[Email Simulator] Sent successfully to: ${email}`);

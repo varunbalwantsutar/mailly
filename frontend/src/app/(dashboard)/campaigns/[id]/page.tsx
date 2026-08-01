@@ -78,9 +78,17 @@ export default function CampaignAnalyticsPage() {
   };
 
   useEffect(() => {
-    if (id) {
-      fetchCampaignDetails();
-    }
+    if (!id) return;
+    
+    // Fetch initial details
+    fetchCampaignDetails();
+
+    // Set up auto-polling every 5 seconds to watch analytics tick up in real time
+    const interval = setInterval(() => {
+      fetchCampaignDetails(true);
+    }, 5000);
+
+    return () => clearInterval(interval);
   }, [id]);
 
   if (loading) {

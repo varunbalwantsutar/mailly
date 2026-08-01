@@ -350,3 +350,104 @@ export const brevoWebhook = async (req: any, res: Response) => {
     return res.status(500).json({ error: 'Webhook processing error' });
   }
 };
+
+// POST /api/webhooks/mailgun
+export const mailgunWebhook = async (req: any, res: Response) => {
+  try {
+    const eventData = req.body['event-data'] || req.body;
+    const event = eventData?.event;
+    const email = eventData?.recipient;
+    
+    // Read campaignId from user-variables
+    const userVars = eventData?.['user-variables'] || {};
+    const campaignId = userVars.campaignId;
+
+    console.log(`[Webhook] Mailgun event: ${event} for ${email}, campaign: ${campaignId}`);
+
+    if (campaignId && email) {
+      const recipient = await prisma.campaignRecipient.findFirst({
+        where: { campaignId, email },
+      });
+
+      if (recipient) {
+        if (event === 'opened' && recipient.status !== 'OPENED') {
+          await prisma.$transaction([
+            prisma.campaignRecipient.update({
+              where: { id: recipient.id },
+              data: { status: 'OPENED', openedAt: new Date() },
+            }),
+            prisma.campaign.update({
+              where: { id: campaignId },
+              data: { openedCount: { increment: 1 } },
+            }),
+          ]);
+        } else if (event === 'delivered' && recipient.status === 'PENDING') {
+          await prisma.$transaction([
+            prisma.campaignRecipient.update({
+              where: { id: recipient.id },
+              data: { status: 'DELIVERED', deliveredAt: new Date() },
+            }),
+            prisma.campaign.update({
+              where: { id: campaignId },
+              data: { deliveredCount: { increment: 1 } },
+            }),
+          ]);
+        }
+      }
+    }
+
+    return res.status(200).json({ status: 'received' });
+  } catch (err) {
+    console.error('Mailgun webhook error:', err);
+    return res.status(500).json({ error: 'Webhook processing error' });
+  }
+};
+
+// POST /api/webhooks/mailersend
+export const mailerSendWebhook = async (req: any, res: Response) => {
+  try {
+    const { type, data } = req.body;
+    const email = data?.email?.recipient?.email;
+    const tags = data?.email?.tags || [];
+    const campaignId = tags[0];
+
+    console.log(`[Webhook] MailerSend event: ${type} for ${email}, campaign: ${campaignId}`);
+
+    if (campaignId && email) {
+      const recipient = await prisma.campaignRecipient.findFirst({
+        where: { campaignId, email },
+      });
+
+      if (recipient) {
+        if (type === 'activity.opened' && recipient.status !== 'OPENED') {
+          await prisma.$transaction([
+            prisma.campaignRecipient.update({
+              where: { id: recipient.id },
+              data: { status: 'OPENED', openedAt: new Date() },
+            }),
+            prisma.campaign.update({
+              where: { id: campaignId },
+              data: { openedCount: { increment: 1 } },
+            }),
+          ]);
+        } else if (type === 'activity.delivered' && recipient.status === 'PENDING') {
+          await prisma.$transaction([
+            prisma.campaignRecipient.update({
+              where: { id: recipient.id },
+              data: { status: 'DELIVERED', deliveredAt: new Date() },
+            }),
+            prisma.campaign.update({
+              where: { id: campaignId },
+              data: { deliveredCount: { increment: 1 } },
+            }),
+          ]);
+        }
+      }
+    }
+
+    return res.status(200).json({ status: 'received' });
+  } catch (err) {
+    console.error('MailerSend webhook error:', err);
+    return res.status(500).json({ error: 'Webhook processing error' });
+  }
+};
