@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   IconButton,
@@ -16,6 +16,28 @@ interface HeaderProps {
 }
 
 export default function Header({ onMenuClick, desktopOpen }: HeaderProps) {
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('user');
+    if (saved) {
+      try {
+        setUser(JSON.parse(saved));
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  }, []);
+
+  const initials = user?.name
+    ? user.name
+        .split(' ')
+        .map((n: string) => n[0])
+        .join('')
+        .toUpperCase()
+        .substring(0, 2)
+    : '';
+
   return (
     <Box
       component="header"
@@ -116,9 +138,11 @@ export default function Header({ onMenuClick, desktopOpen }: HeaderProps) {
             bgcolor: '#3525cd',
             cursor: 'pointer',
             boxShadow: '0 2px 8px rgba(53, 37, 205, 0.15)',
+            fontSize: '12px',
+            fontWeight: 700,
           }}
         >
-          <Person sx={{ fontSize: '18px', color: '#ffffff' }} />
+          {initials || <Person sx={{ fontSize: '18px', color: '#ffffff' }} />}
         </Avatar>
       </Box>
     </Box>

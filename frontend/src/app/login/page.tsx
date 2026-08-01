@@ -18,6 +18,7 @@ import {
 } from '@mui/material';
 import { Visibility, VisibilityOff, Security, Lock } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
+import api from '../../utils/api';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -63,27 +64,18 @@ export default function LoginPage() {
       }
 
       try {
-        const response = await fetch('http://localhost:5000/api/auth/register', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email,
-            password,
-            name: fullName,
-            companyName,
-          }),
+        const response = await api.post('/auth/register', {
+          email,
+          password,
+          name: fullName,
+          companyName,
         });
 
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.error || 'Registration failed.');
-        }
+        const data = response.data;
 
         setSuccess('Account created successfully! Redirecting...');
         localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem('token', data.token);
 
         setTimeout(() => {
           router.push('/dashboard');
@@ -102,22 +94,12 @@ export default function LoginPage() {
       }
 
       try {
-        const response = await fetch('http://localhost:5000/api/auth/login', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ email, password }),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.error || 'Login failed. Please check your credentials.');
-        }
+        const response = await api.post('/auth/login', { email, password });
+        const data = response.data;
 
         setSuccess('Login successful! Redirecting...');
         localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem('token', data.token);
 
         setTimeout(() => {
           router.push('/dashboard');

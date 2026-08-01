@@ -8,10 +8,116 @@ generator client {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
+  id        String     @id @default(uuid())
+  email     String     @unique
   password  String
   name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  contacts  Contact[]
+  audiences Audience[]
+  campaigns Campaign[]
 }
+
+model Contact {
+  id           String           @id @default(uuid())
+  email        String
+  name         String
+  phone        String?
+  city         String?
+  company      String?
+  tags         String[]
+  customFields Json             @default("{}")
+  status       ContactStatus    @default(ACTIVE)
+  userId       String
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  recipients   CampaignRecipient[]
+
+  @@unique([userId, email])
+}
+
+enum ContactStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model Audience {
+  id              String   @id @default(uuid())
+  name            String
+  type            String   // 'Dynamic Segment' | 'Static List'
+  logicalOperator String   @default("AND") // "AND" | "OR"
+  rules           Json     @default("[]")  // List of rules: [{ field: string, operator: string, value: string }]
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  campaigns       Campaign[]
+
+  @@unique([userId, name])
+}
+
+model Campaign {
+  id              String              @id @default(uuid())
+  camId           String              // E.g. 'CAM-9921'
+  name            String
+  subject         String
+  body            String
+  fromName        String
+  fromEmail       String
+  utmSource       String?
+  utmMedium       String?
+  utmCampaign     String?
+  status          CampaignStatus      @default(DRAFT)
+  recipientType   String              // 'audience' | 'paste'
+  audienceId      String?
+  audience        Audience?           @relation(fields: [audienceId], references: [id], onDelete: SetNull)
+  tags            String[]            // Target tags (if selected)
+  customRecipients String[]           // Pasted recipients (if selected)
+  sendTiming      String              // 'now' | 'later'
+  scheduledAt     DateTime?
+  timezone        String?
+  sentCount       Int                 @default(0)
+  deliveredCount  Int                 @default(0)
+  openedCount     Int                 @default(0)
+  failedCount     Int                 @default(0)
+  userId          String
+  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recipients      CampaignRecipient[]
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  SENDING
+  SENT
+  FAILED
+}
+
+model CampaignRecipient {
+  id          String         @id @default(uuid())
+  campaignId  String
+  campaign    Campaign       @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  contactId   String?
+  contact     Contact?       @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  email       String
+  status      DeliveryStatus @default(PENDING)
+  deliveredAt DateTime?
+  openedAt    DateTime?
+  failedAt    DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@unique([campaignId, email])
+}
+
+enum DeliveryStatus {
+  PENDING
+  DELIVERED
+  OPENED
+  FAILED
+}
+

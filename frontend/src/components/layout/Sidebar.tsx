@@ -1,7 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import api from '../../utils/api';
 import {
   Box,
   Typography,
@@ -24,12 +25,10 @@ import {
 } from '@mui/icons-material';
 
 const NAV_ITEMS = [
-  { text: 'Dashboard', icon: <Dashboard />, path: '/dashboard' },
+  { text: 'Analytics', icon: <Dashboard />, path: '/dashboard' },
   { text: 'Contacts', icon: <Person />, path: '/contacts' },
   { text: 'Audiences', icon: <Groups />, path: '/audiences' },
   { text: 'Campaigns', icon: <Campaign />, path: '/campaigns' },
-  { text: 'Analytics', icon: <BarChart />, path: '/analytics' },
-  { text: 'Settings', icon: <Settings />, path: '/settings' },
 ];
 
 interface SidebarProps {
@@ -39,11 +38,24 @@ interface SidebarProps {
 export default function Sidebar({ onClose }: SidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('user');
+    if (saved) {
+      try {
+        setUser(JSON.parse(saved));
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  }, []);
 
   const handleLogout = async () => {
     try {
-      await fetch('http://localhost:5000/api/auth/logout', { method: 'POST' });
+      await api.post('/auth/logout');
       localStorage.removeItem('user');
+      localStorage.removeItem('token');
       router.push('/login');
     } catch (error) {
       console.error('Logout error:', error);
@@ -139,10 +151,10 @@ export default function Sidebar({ onClose }: SidebarProps) {
           </Box>
           <Box sx={{ overflow: 'hidden' }}>
             <Typography variant="subtitle2" sx={{ color: '#0b1c30', fontWeight: 600, fontSize: '13.5px', lineHeight: 1.2 }} noWrap>
-              John Doe
+              {user?.name || 'User'}
             </Typography>
             <Typography sx={{ color: '#464555', fontSize: '11px', mt: 0.2 }} noWrap>
-              Mailly HQ
+              {user?.companyName || user?.email || 'My Workspace'}
             </Typography>
           </Box>
         </Box>

@@ -58,6 +58,7 @@ export const login = async (req: Request, res: Response) => {
 
     return res.status(200).json({
       message: 'Login successful',
+      token,
       user: {
         id: user.id,
         email: user.email,
@@ -113,6 +114,7 @@ export const register = async (req: Request, res: Response) => {
 
     return res.status(201).json({
       message: 'User registered successfully',
+      token,
       user: {
         id: user.id,
         email: user.email,
@@ -132,7 +134,11 @@ export const logout = (req: Request, res: Response) => {
 
 export const me = async (req: Request, res: Response) => {
   try {
-    const token = req.cookies?.token;
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.startsWith('Bearer ') 
+      ? authHeader.substring(7) 
+      : req.cookies?.token;
+
     if (!token) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
