@@ -12,9 +12,9 @@ export interface AuthenticatedRequest extends Request {
 
 export const requireAuth = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
-  const token = authHeader && authHeader.startsWith('Bearer ') 
-    ? authHeader.substring(7) 
-    : req.cookies?.token;
+  const token = authHeader && authHeader.startsWith('Bearer ')
+    ? authHeader.substring(7)
+    : "";
 
   if (!token) {
     return res.status(401).json({ error: 'Authentication required' });
